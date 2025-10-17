@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "WRA506D",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

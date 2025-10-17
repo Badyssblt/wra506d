@@ -16,28 +16,42 @@ class TicketRepository extends ServiceEntityRepository
         parent::__construct($registry, Ticket::class);
     }
 
-    //    /**
-    //     * @return Ticket[] Returns an array of Ticket objects
-    //     */
-    //    public function findByExampleField($value): array
-    //    {
-    //        return $this->createQueryBuilder('t')
-    //            ->andWhere('t.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->orderBy('t.id', 'ASC')
-    //            ->setMaxResults(10)
-    //            ->getQuery()
-    //            ->getResult()
-    //        ;
-    //    }
+    public function getTicketStatistics(): array
+    {
+        $qb = $this->createQueryBuilder('t');
 
-    //    public function findOneBySomeField($value): ?Ticket
-    //    {
-    //        return $this->createQueryBuilder('t')
-    //            ->andWhere('t.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->getQuery()
-    //            ->getOneOrNullResult()
-    //        ;
-    //    }
+        // Total tickets
+        $total = $qb->select('COUNT(t.id)')
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        // By status
+        $byStatus = $this->createQueryBuilder('t')
+            ->select('t.status as status, COUNT(t.id) as count')
+            ->groupBy('t.status')
+            ->getQuery()
+            ->getResult();
+
+        // By priority
+        $byPriority = $this->createQueryBuilder('t')
+            ->select('t.priority as priority, COUNT(t.id) as count')
+            ->groupBy('t.priority')
+            ->getQuery()
+            ->getResult();
+
+        // By category
+        $byCategory = $this->createQueryBuilder('t')
+            ->select('c.name as category, COUNT(t.id) as count')
+            ->leftJoin('t.category', 'c')
+            ->groupBy('c.name')
+            ->getQuery()
+            ->getResult();
+
+        return [
+            'total' => $total,
+            'by_status' => $byStatus,
+            'by_priority' => $byPriority,
+            'by_category' => $byCategory,
+        ];
+    }
 }

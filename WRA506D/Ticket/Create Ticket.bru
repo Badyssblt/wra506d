@@ -1,0 +1,28 @@
+meta {
+  name: Create Ticket
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/tickets
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "title": "Mise à jour",
+    "description": "Mettre à jour les modules Wordpress",
+    "creator": "/api/users/1",
+    "agent": [
+      "/api/users/1"
+    ],
+    "priority": "low",
+    "status": "open",
+    "category": "https://example.com/",
+    "comments": [
+      "https://example.com/"
+    ]
+  }
+}

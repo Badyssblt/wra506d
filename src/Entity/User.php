@@ -2,24 +2,55 @@
 
 namespace App\Entity;
 
+use ApiPlatform\Metadata\ApiProperty;
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\ApiFilter;
+use ApiPlatform\Metadata\Delete;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\Patch;
+use ApiPlatform\Metadata\Post;
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
+use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
+use App\Filter\UuidFilter;
 use App\Repository\UserRepository;
+use App\Traits\CreatedAtTrait;
+use App\Traits\IdTrait;
+use App\Traits\UpdatedAtTrait;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
+use Symfony\Component\Serializer\Annotation\Ignore;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\Table(name: '`user`')]
 #[ORM\UniqueConstraint(name: 'UNIQ_IDENTIFIER_EMAIL', fields: ['email'])]
+#[ORM\HasLifecycleCallbacks]
+#[ApiResource(
+    operations: [
+        new Get(security: "is_granted('ROLE_USER') and (object == user or is_granted('ROLE_ADMIN'))"),
+        new GetCollection(security: "is_granted('ROLE_AGENT')"),
+        new Post(security: "is_granted('ROLE_ADMIN')"),
+        new Patch(security: "is_granted('ROLE_USER') and (object == user or is_granted('ROLE_ADMIN'))"),
+        new Delete(security: "is_granted('ROLE_ADMIN')")
+    ]
+)]
+#[ApiFilter(SearchFilter::class, properties: ['email' => 'exact', 'name' => 'partial'])]
+#[ApiFilter(OrderFilter::class, properties: ['createdAt', 'name', 'email'])]
+#[ApiFilter(UuidFilter::class)]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
-    #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column]
-    private ?int $id = null;
+    use IdTrait;
+    use CreatedAtTrait;
+    use UpdatedAtTrait;
 
     #[ORM\Column(length: 180)]
+    #[Assert\NotBlank(message: "L'email est requis")]
+    #[Assert\Email(message: "L'email {{ value }} n'est pas valide")]
+    #[Assert\Length(max: 180)]
     private ?string $email = null;
 
     /**
@@ -32,9 +63,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      * @var string The hashed password
      */
     #[ORM\Column]
+    #[Ignore]
     private ?string $password = null;
 
     #[ORM\Column(length: 255)]
+    #[Assert\NotBlank(message: 'Le nom est requis')]
+    #[Assert\Length(min: 2, max: 255, minMessage: 'Le nom doit contenir au moins {{ limit }} caractères', maxMessage: 'Le nom ne peut pas dépasser {{ limit }} caractères')]
     private ?string $name = null;
 
     /**
@@ -53,11 +87,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     {
         $this->tickets = new ArrayCollection();
         $this->tickets_agent = new ArrayCollection();
-    }
-
-    public function getId(): ?int
-    {
-        return $this->id;
     }
 
     public function getEmail(): ?string
